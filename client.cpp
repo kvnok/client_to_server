@@ -5,6 +5,54 @@
 #include <arpa/inet.h>  // For manipulating IP addresses
 #include <unistd.h>     // For close() function
 
+void loop(int clientSocket, char *buffer)
+{
+    while (true) {
+        // Prompt user for a request
+        std::string userRequest;
+        std::cout << "Enter your request (GET, POST, DELETE) (or type 'quit' to exit): ";
+        std::getline(std::cin, userRequest);
+        if (userRequest == "quit") {
+            break;
+        }
+        // Construct the corresponding HTTP request based on user's input
+        std::string httpRequest;
+        if (userRequest == "GET") {
+            httpRequest = "GET / HTTP/1.1\r\n"
+                          "Host: localhost\r\n"
+                          "Connection: close\r\n\r\n";
+        } else if (userRequest == "POST") {
+            // Construct POST request (replace with actual POST request as needed)
+            httpRequest = "POST / HTTP/1.1\r\n"
+                          "Host: localhost\r\n"
+                          "Content-Length: 0\r\n"
+                          "Connection: close\r\n\r\n";
+        } else if (userRequest == "DELETE") {
+            // Construct DELETE request (replace with actual DELETE request as needed)
+            httpRequest = "DELETE / HTTP/1.1\r\n"
+                          "Host: localhost\r\n"
+                          "Connection: close\r\n\r\n";
+        } else {
+            std::cerr << "Invalid request\n";
+            continue;
+        }
+
+        // Send the constructed HTTP request to the server
+        if (send(clientSocket, httpRequest.c_str(), httpRequest.size(), 0) == -1) {
+            std::cerr << "Error sending data\n";
+            break;
+        }
+        // Receive and print server response
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesReceived <= 0) {
+            std::cerr << "Connection closed by server\n";
+            break;
+        }
+        buffer[bytesReceived] = '\0'; // Null-terminate the received data
+        std::cout << "Server response: " << buffer << std::endl;
+    }
+}
+
 int main() {
     int clientSocket;                           // Socket descriptor for the client
     struct sockaddr_in serverAddr;              // Structure to hold server address information
@@ -25,23 +73,8 @@ int main() {
         return 1;
     }
     std::cout << "Connected to server\n"; // Print success message after successful connection
-    // Loop to send and receive data
-    while (true) {
-        std::cout << "Enter message: ";
-        std::cin.getline(buffer, sizeof(buffer)); // Read user input from console
-        // Send data to server
-        if (send(clientSocket, buffer, strlen(buffer), 0) == -1) {
-            std::cerr << "Error sending data\n";
-            break;
-        }
-        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0); // Receive data from server
-        if (bytesReceived <= 0) {
-            std::cerr << "Connection closed by server\n";
-            break;
-        }
-        buffer[bytesReceived] = '\0'; // Null-terminate the received data
-        std::cout << "Server response: " << buffer << std::endl; // Print the server's response
-    }
+    // Call the loop function to send/receive data
+    loop(clientSocket, buffer);
     close(clientSocket); // Close the socket
     return 0;
 }
